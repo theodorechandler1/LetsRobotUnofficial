@@ -56,8 +56,8 @@ class ChatServerInbound(threading.Thread):
         self.chatConnected = False
     
     def _handleChatMessage(self, *args):
-        #Send it to the chatQueue
-            logging.debug("Chat Message User: {} sent: {}".format(args[0]['name'],args[0]['message']))
-            self.chatQueue.put(*args)
-            self.eventWaiting.set()
+        #Send it upstream and notify the main thread there is work to do
+        logging.debug("User: %s sent: %s" % (args[0]['name'], args[0]['message']))
+        self.chatQueue.put(*args)
+        self.eventWaiting.set()
 

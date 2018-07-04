@@ -50,7 +50,7 @@ class ControlServerInbound(threading.Thread):
         self.commandSocket.emit('identify_robot_id', self.robotID)
     
     def _handleCommand(self, *args):
-        #Send it upstream to let the orchestrator pass the message out
+        #Send it upstream and notify the main thread there is work to do
         logging.debug("Received Command: {} from: {}".format(args[0]['command'],args[0]['user']))
         self.controlQueue.put(*args)
         self.eventWaiting.set()
