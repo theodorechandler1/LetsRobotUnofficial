@@ -9,7 +9,7 @@ setup(
     url='http://pypi.python.org/pypi/LetsRobot/',
     license='LICENSE.txt',
     description='Library to interface with LetsRobot',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     install_requires=[
         "socketIO-client",
     ],
