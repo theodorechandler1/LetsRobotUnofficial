@@ -1,7 +1,14 @@
-from ChatServerInbound import ChatServerInbound
-from ControlServerInbound import ControlServerInbound
+from .ChatServerInbound import ChatServerInbound
+from .ControlServerInbound import ControlServerInbound
+from .VideoServerOutbound import VideoServerOutbound
+from .VideoSettings import VideoSettings
 import logging
-from queue import Queue
+
+try:
+    from queue import Queue
+except ImportError:
+    #Backwards compatable for python 2.x
+    from Queue import Queue
 import threading
 
 class LetsRobot(object):
@@ -28,7 +35,8 @@ class LetsRobot(object):
     
     """
     def __init__(self):
-        self.logger = logging.getLogger(__name__).addHandler(logging.NullHandler())
+        self.logger = logging.getLogger(__name__)
+        self.logger.addHandler(logging.NullHandler())
         self.shutdownEventSet = set()
         self.chatHandlers = set()
         self.controlHandlers = set()
@@ -62,6 +70,8 @@ class LetsRobot(object):
             chatServerURL -- URL to retrieve chat events from. Leave this alone for the most part
         """
         chatServer = ChatServerInbound(self.chatQueue, self.eventShutdown, self.eventWaiting, chatServerURL, robotID)
+        chatServer.daemon = True
+        chatServer.name = "ChatServer Thread ID: {}".format(robotID)
         chatServer.start()
         self.threadList.add(chatServer)
     
@@ -89,8 +99,21 @@ class LetsRobot(object):
             chatServerURL -- URL to retrieve control events from. Leave this alone for the most part
         """
         controlServer = ControlServerInbound(self.controlQueue, self.eventShutdown, self.eventWaiting, controlServerURL, robotID)
+        controlServer.daemon = True
+        controlServer.name = "ControlServer Thread ID: {}".format(robotID)
         controlServer.start()
         self.threadList.add(controlServer)
+    
+    def addVideoOutput(self, cameraID, videoSettings = VideoSettings()):
+        self.logger.debug("Adding camera ")
+        if(videoSettings.cameraID is None):
+            videoSettings.cameraID = cameraID
+        videoServer = VideoServerOutbound(self.eventShutdown, videoSettings)
+        videoServer.daemon = True
+        videoServer.name = "VideoServer Thread ID {}".format(cameraID)
+        videoServer.start()
+        self.threadList.add(videoServer)
+        pass
     
     def wait(self, timeout=1):
         '''Wait for server events and when events are received call the requested functions
@@ -119,8 +142,12 @@ class LetsRobot(object):
         '''Allows the threads to shutdown gracefully
         
         '''
+        waitTime = 1
+        self.logger.debug("Setting shutdown event")
         self.eventShutdown.set()
         for t in self.threadList:
+            
+            self.logger.debug("Waiting for thread %s to shutdown or %s seconds to pass" % (t.name, waitTime))
             t.join(1) 
     
     def __callChatEvent__(self, *args):

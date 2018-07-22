@@ -1,5 +1,8 @@
-from urllib.request import urlopen
-from urllib.error import URLError
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.error import URLError
+
+#from urllib.request import urlopen
+#from urllib.error import URLError
 import time
 
 class ServerHelper:
@@ -15,7 +18,7 @@ class ServerHelper:
             
     @staticmethod
     def getWithRetry(url, secure=True):
-        for retryNumber in range(2000):
+        for retryNumber in range(20):
             try:
                 if secure:
                     response = urlopen(url).read()
