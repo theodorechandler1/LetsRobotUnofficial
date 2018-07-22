@@ -23,5 +23,10 @@ while(True):
     r.wait()
 ```
 
+Installation is a simple as 
+```
+pip install letsrobot_unofficial
+```
+
 For more information including how to get a robot id and video id visit https://letsrobot.tv
 or for additional examples and documentation visit https://github.com/theodorechandler1/LetsRobotUnofficial
