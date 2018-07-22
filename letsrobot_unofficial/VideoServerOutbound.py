@@ -34,11 +34,13 @@ class VideoServerOutbound(threading.Thread):
             while not self.shutdownEvent.is_set():
                 self.appServerSocketIO.wait(seconds=1)
                 self.appServerSocketIO.emit('send_video_status', {'send_video_process_exists': True, 'ffmpeg_process_exists': True, 'camera_id':self.videoSettings.cameraID})
-                if((self.videoSettings.videoEnabled == True) and (videoProcess is not None) and (videoProcess.poll() == None)):
+                if((self.videoSettings.videoEnabled == True) and (videoProcess is not None)):
                     out, err = videoProcess.communicate()
+                    self.logger.debug("Video process output begin")
                     self.logger.debug(out)
                     self.logger.debug(err)
-                if((self.videoSettings.audioEnabled == True) and (audioProcess is not None) and (audioProcess.poll() == None)):
+                    self.logger.debug("Video process output end")
+                if((self.videoSettings.audioEnabled == True) and (audioProcess is not None)):
                     out, err = audioProcess.communicate()
                     self.logger.debug(out)
                     self.logger.debug(err)
