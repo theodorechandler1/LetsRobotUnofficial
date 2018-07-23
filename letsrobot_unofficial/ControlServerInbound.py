@@ -18,6 +18,7 @@ class ControlServerInbound(threading.Thread):
         self.eventWaiting = eventWaiting
         self.controlHostPort = None
         self.commandSocket = None
+        self.disconnected = True
         super(ControlServerInbound, self).__init__(*args, **kwargs)
     
     def run(self):
@@ -41,13 +42,15 @@ class ControlServerInbound(threading.Thread):
         self.commandSocket.on('disconnect', self._handleCommandDisconnect)
         self.commandSocket.on('connect', self._sendRobotID)
         self.commandSocket.on('reconnect', self._sendRobotID)
+        self.disconnected = False
     
     def __listenAndWait(self):
-        while not self.shutdownEvent.is_set():
+        while(not self.shutdownEvent.is_set() and (self.disconnected == False)):
             self.commandSocket.wait(seconds=1)
                 
     def _handleCommandDisconnect(self):
         self.logger.debug("Command Socket Disconnected")
+        self.disconnected = True
     
     def _sendRobotID(self):
         self.commandSocket.emit('identify_robot_id', self.robotID)
