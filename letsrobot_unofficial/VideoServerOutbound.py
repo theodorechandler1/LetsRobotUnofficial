@@ -18,52 +18,59 @@ class VideoServerOutbound(threading.Thread):
         self.videoSettings = videoSettings #Contains all the relevant information for the video stream
         self.robotID = None
         self.appServerSocketIO = None
-        self.streamSettings = None
+        self.requireRestart = False
+        
+        self.videoProcess = None
+        self.audioProcess = None
         pass
     
     def run(self):
-        videoProcess = None
-        audioProcess = None
         try:
             self.__setupAppServerSocketIO()
             self.__identifyRobotToAppServer()
             self.__getRobotID()
-            self.streamSettings = self.__getVideoSettings()
+            self.__getVideoSettings()
             self.appServerSocketIO.on('robot_settings_changed', self.__onVideoSettingsChanged)
             count = 0
             while not self.shutdownEvent.is_set():
                 self.appServerSocketIO.wait(seconds=1)
-                self.appServerSocketIO.emit('send_video_status', {'send_video_process_exists': True, 'ffmpeg_process_exists': True, 'camera_id':self.videoSettings.cameraID})
-                if((self.videoSettings.videoEnabled == True) and (videoProcess is not None)):
-                    out, err = videoProcess.communicate()
-                    self.logger.debug("Video process output begin")
-                    self.logger.debug(out)
-                    self.logger.debug(err)
-                    self.logger.debug("Video process output end")
-                if((self.videoSettings.audioEnabled == True) and (audioProcess is not None)):
-                    out, err = audioProcess.communicate()
-                    self.logger.debug(out)
-                    self.logger.debug(err)
+                keepAlive = {'send_video_process_exists': True, 'ffmpeg_process_exists': True, 'camera_id':self.videoSettings.cameraID}
+                self.logger.debug("Sending keepAlive: send_video_status, %s" % (keepAlive))
+                self.appServerSocketIO.emit('send_video_status', keepAlive)
+                if((self.videoSettings.videoEnabled == True) and (self.videoProcess is not None)):
+                    pass
+                    #self.logger.debug("Video process output begin")
+                    #self.logger.debug("Video Out: %s" %(self.videoProcess.stdout.readline()))
+                    #self.logger.debug("Video Err: %s" %(self.videoProcess.stderr.readline()))
+                    #self.logger.debug("Video process output end")
+                if((self.videoSettings.audioEnabled == True) and (self.audioProcess is not None)):
+                    pass
+                    #self.logger.debug("Audio process output begin")
+                    #self.logger.debug("Audio Out: %s" %(self.audioProcess.stdout.readline()))
+                    #self.logger.debug("Audio Err: %s" %(self.audioProcess.stderr.readline()))
+                    #self.logger.debug("Audio process output end")
                 
-                if(self.videoSettings.videoEnabled == True and (videoProcess is None or videoProcess.poll() != None)):
+                if(self.videoSettings.videoEnabled == True and (self.videoProcess is None or self.videoProcess.poll() != None)):
                     self.logger.debug("Video process is not running. Attempting to (re)start")
                     time.sleep(5)
-                    videoProcess = self.__startVideoCaptureLinux()
-                if(self.videoSettings.audioEnabled == True and (audioProcess is None or audioProcess.poll() != None)):
+                    self.videoProcess = self.__startVideoCaptureLinux()
+                if(self.videoSettings.audioEnabled == True and (self.audioProcess is None or self.audioProcess.poll() != None)):
                     self.logger.debug("Audio process is not running. Attempting to (re)start")
                     time.sleep(5)
-                    audioProcess = self.__startAudioCaptureLinux()
+                    self.audioProcess = self.__startAudioCaptureLinux()
                 if((count % 60) == 0):
                     self.__identifyRobotToAppServer()
                 count += 1
+                
+                if(self.requireRestart == True):
+                    self.__getVideoSettings()
+                    self.__killProcesses()
+                    self.requireRestart = False
         except Exception as e:
             logging.exception("VideoServerOutbound encountered an error")
             raise e
         finally:
-            if videoProcess is not None:
-                videoProcess.kill()
-            if audioProcess is not None:
-                audioProcess.kill()
+            self.__killProcesses()
     
     
     def __setupAppServerSocketIO(self):
@@ -107,6 +114,9 @@ class VideoServerOutbound(threading.Thread):
         response = ServerHelper.getWithRetry(url)
         result = json.loads(response)
         self.logger.debug("Received video settings %s" % (result))
+        if(self.videoSettings.allowServerOverride == True):
+            self.videoSettings.xres = result['xres']
+            self.videoSettings.yres = result['yres']
         return result
     
     def __identifyRobotToAppServer(self):
@@ -114,18 +124,26 @@ class VideoServerOutbound(threading.Thread):
         self.appServerSocketIO.emit('identify_robot_id', self.robotID)
     
     def __onVideoSettingsChanged(self, *args):
-        self.logger.debug("Video settings changed")
-        self.__getVideoSettings()
+        self.logger.debug("Video settings changed beginning video/audio restart process")
+        self.requireRestart = True
         #TODO: Actually Change the settings
         pass
     
     def __startVideoCaptureLinux(self):
         videoCommandLine = self.videoSettings.getVideoCommand(self.__getWebsocketRelayHost(), self.__getVideoPort())
         self.logger.debug("Starting ffmpeg video with command %s" % (videoCommandLine))
-        return subprocess.Popen(shlex.split(videoCommandLine), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.Popen(shlex.split(videoCommandLine)) #TODO: Find a better way to log output
     
     def __startAudioCaptureLinux(self):
         audioCommandLine = self.videoSettings.getAudioCommand(self.__getWebsocketRelayHost(), self.__getAudioPort())
         self.logger.debug("Starting ffmpeg audio with command %s" % (audioCommandLine))
-        return subprocess.Popen(shlex.split(audioCommandLine), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.Popen(shlex.split(audioCommandLine))#TODO: Find a better way to log output , stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
+    def __killProcesses(self):
+        self.logger.debug("Killing processes")
+        if self.videoProcess is not None:
+            self.logger.debug("Killing video process")
+            self.videoProcess.kill()
+        if self.audioProcess is not None:
+            self.logger.debug("Killing video process")
+            self.audioProcess.kill()

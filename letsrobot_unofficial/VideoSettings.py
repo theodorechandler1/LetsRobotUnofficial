@@ -2,7 +2,7 @@
 
 class VideoSettings(object):
     
-    def __init__(self,):
+    def __init__(self):
         self.cameraID = None
         self.cameraDeviceNumber = 0
         self.audioDeviceNumber = 1
@@ -17,6 +17,7 @@ class VideoSettings(object):
         self.serverURL = 'letsrobot.tv'
         self.serverPort = 8022
         self.apiServer = 'api.letsrobot.tv'
+        self.allowServerOverride = True #Allows the server to override settings 
     
     def getVideoCommand(self, videoHostRelay, videoPort):
         videoCommandLine = 'ffmpeg -f v4l2 -framerate 25 -video_size {xres}x{yres} -r 25 -i /dev/video{video_device_number} {rotation_option} -f mpegts -codec:v mpeg1video -b:v {kbps}k -bf 0 -muxdelay 0.001 http://{video_host}:{video_port}/{stream_key}/{xres}/{yres}/'.format( \

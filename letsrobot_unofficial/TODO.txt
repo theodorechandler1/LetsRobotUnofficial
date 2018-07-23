@@ -1,0 +1,3 @@
+VideoServerOutbound currently can't handle video changes without a restart. 'robot_settings_changed' does not appear to be called by the server
+VideoServerOutbound should have an easy to use interface for adding a text overlay to the stream
+VideoServerOutbound does not have any error checking if ffmpeg is not installed
