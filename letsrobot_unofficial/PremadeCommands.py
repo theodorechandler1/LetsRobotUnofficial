@@ -3,7 +3,6 @@ import logging
 import tempfile
 import uuid
 import sys
-from metaphone import doublemetaphone
 
 if sys.platform.startswith('win32'):
     try:

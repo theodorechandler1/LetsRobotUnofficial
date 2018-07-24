@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='letsrobot_unofficial',
-    version='0.1.1',
+    version='0.1.2',
     author='Theodore Chandler',
     author_email='theodorechandler1+LetsRobot@gmail.com',
     packages=['letsrobot_unofficial'],
