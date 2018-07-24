@@ -89,9 +89,17 @@ class VideoServerOutbound(threading.Thread):
         url = 'https://{}/get_audio_port/{}'.format(self.videoSettings.serverURL, self.videoSettings.cameraID)
         self.logger.debug("Getting audio port from url: %s" % (url))
         response = ServerHelper.getWithRetry(url)
-        audioPort = json.loads(response)['audio_stream_port']
-        self.logger.debug("Received audio port %s" % (audioPort))
-        return audioPort
+        responseDict = json.loads(response)
+        audioPort = None
+        if 'audio_stream_port' in responseDict:
+            audioPort = responseDict['audio_stream_port']
+            self.logger.debug("Received audio port %s" % (audioPort))
+        elif 'audio_streamPort' in responseDict:
+            audioPort = responseDict['audio_streamPort']
+            self.logger.debug("received audio port %s (using brumlow.io?)" % (audioPort))
+        else:
+            self.logger.warn("No audio port was transmitted by the server!")
+        return None
     
     def __getRobotID(self):
         url = 'https://{}/get_robot_id/{}'.format(self.videoSettings.serverURL, self.videoSettings.cameraID)
