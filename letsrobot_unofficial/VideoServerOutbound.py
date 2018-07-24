@@ -115,8 +115,14 @@ class VideoServerOutbound(threading.Thread):
         result = json.loads(response)
         self.logger.debug("Received video settings %s" % (result))
         if(self.videoSettings.allowServerOverride == True):
-            self.videoSettings.xres = result['xres']
-            self.videoSettings.yres = result['yres']
+            if 'xres' in result:
+                self.videoSettings.xres = result['xres']
+            else:
+                self.logger.warn("Server did not send 'xres' in video settings")
+            if 'yres' in result:
+                self.videoSettings.yres = result['yres']
+            else:
+                self.logger.warn("Server did not send 'yres' in video settings.")
         return result
     
     def __identifyRobotToAppServer(self):
