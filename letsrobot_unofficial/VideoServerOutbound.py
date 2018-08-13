@@ -99,7 +99,7 @@ class VideoServerOutbound(threading.Thread):
             self.logger.debug("received audio port %s (using brumlow.io?)" % (audioPort))
         else:
             self.logger.warn("No audio port was transmitted by the server!")
-        return None
+        return audioPort
     
     def __getRobotID(self):
         url = 'https://{}/get_robot_id/{}'.format(self.videoSettings.serverURL, self.videoSettings.cameraID)
